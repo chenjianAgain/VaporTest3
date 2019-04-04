@@ -1,0 +1,30 @@
+#set("content") {
+  <h1>Create Acronym</h1>
+
+  <form method="post">
+    <div class="form-group">
+      <label for="name">Acronym</label>
+      <input type="text" id="name" name="name" placeholder="Enter Acronym"
+      class="form-control" #if(editing) {value="#(acronym.name)"}>
+    </div>
+
+    <div class="form-group">
+      <label for="meaning">Meaning</label>
+      <input type="text" id="meaning" name="meaning" placeholder="Enter Meaning"
+      class="form-control" #if(editing) {value="#(acronym.meaning)"}>
+    </div>
+
+    <div class="form-group">
+      <label for="languageID">Language</label>
+      <select id="languageID" name="languageID" class="form-control">
+        #for(language in languages) {
+          <option value="#(language.id)" #if(language.id == acronym.languageID) {selected}>#(language.name)</option>
+        }
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">#if(editing) {Update} else {Submit}</button>
+  </form>
+}
+
+#embed("base")
