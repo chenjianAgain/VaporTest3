@@ -30,7 +30,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     middlewares.use(SessionsMiddleware.self)
     services.register(middlewares)
     
-    let hostname = Environment.get("DATABASE_HOSTNAME") ?? "35.238.101.198"
+    let hostname = Environment.get("DATABASE_HOSTNAME") ?? "db-dev.josephaws.com"
     let username = Environment.get("DATABASE_USER") ?? "derekcoder"
     let password = Environment.get("DATABASE_PASSWORD") ?? "password"
     let databaseName: String
