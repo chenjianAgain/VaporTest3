@@ -16,24 +16,33 @@ final class User: Codable {
     var name: String
     var password: String
     var email: String
+    var role: Int
+    
+    enum Role: Int {
+        case normal = 1
+        case admin = 100
+    }
     
     final class Public: Codable {
         var id: UUID?
         var username: String
         var name: String
+        var role: Int
         
-        init(id: UUID?, username: String, name: String) {
+        init(id: UUID?, username: String, name: String, role: Int) {
             self.id = id
             self.username = username
             self.name = name
+            self.role = role
         }
     }
     
-    init(username: String, name: String, password: String, email: String) {
+    init(username: String, name: String, password: String, email: String, role: Int) {
         self.username = username
         self.name = name
         self.password = password
         self.email = email
+        self.role = role
     }
 }
 
@@ -59,7 +68,7 @@ extension User.Public: Content {}
 
 extension User {
     func convertToPublic() -> User.Public {
-        let publicUser = User.Public(id: id, username: username, name: name)
+        let publicUser = User.Public(id: id, username: username, name: name, role: role)
         publicUser.id = self.id
         return publicUser
     }
@@ -94,11 +103,17 @@ struct AdminUser: Migration {
             fatalError("Failed to create admin user")
         }
         
-        let user = User(username: "admin", name: "Admin", password: hashedPassword, email: "admin@localhost.local")
+        let user = User(username: "admin", name: "Admin", password: hashedPassword, email: "admin@localhost.local", role: User.Role.admin.rawValue)
         return user.save(on: conn).transform(to: ())
     }
     
     static func revert(on conn: MySQLConnection) -> Future<Void> {
         return .done(on: conn)
+    }
+}
+
+extension User {
+    var isAdmin: Bool {
+        return role == User.Role.admin.rawValue
     }
 }

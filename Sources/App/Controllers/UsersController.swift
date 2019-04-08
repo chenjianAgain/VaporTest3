@@ -16,7 +16,7 @@ struct UsersController: RouteCollection {
         usersRoute.get(use: getAllHandler)
         usersRoute.get(User.parameter, use: getHandler)
         usersRoute.get(User.parameter, "acronyms", use: getAcronymsHandler)
-        usersRoute.post(User.self, use: createHandler)
+        usersRoute.post(UserCreateData.self, use: createHandler)
         
         let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
         let basicAuthGroup = usersRoute.grouped(basicAuthMiddleware)
@@ -26,10 +26,15 @@ struct UsersController: RouteCollection {
         let guardAuthMiddleware = User.guardAuthMiddleware()
         let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
         tokenAuthGroup.get("me", use: getMeHandler)
+        tokenAuthGroup.post(User.parameter, "upgrade", use: upgradeHandler)
     }
     
-    func createHandler(_ req: Request, user: User) throws -> Future<User.Public> {
-        user.password = try BCrypt.hash(user.password)
+    func createHandler(_ req: Request, userData: UserCreateData) throws -> Future<User.Public> {
+        let user = try User(username: userData.username,
+                            name: userData.name,
+                            password: BCrypt.hash(userData.password),
+                            email: userData.email,
+                            role: User.Role.normal.rawValue)
         return user.save(on: req).convertToPublic()
     }
     
@@ -48,7 +53,7 @@ struct UsersController: RouteCollection {
     
     func getAcronymsHandler(_ req: Request) throws -> Future<[Acronym]> {
         return try req.parameters.next(User.self).flatMap(to: [Acronym].self) { user in
-            return try user.acronyms.query(on: req).all()
+            return try user.acronyms.query(on: req).filter(\.state == Acronym.State.approved.rawValue).all()
         }
     }
     
@@ -57,4 +62,25 @@ struct UsersController: RouteCollection {
         let token = try Token.generate(for: user)
         return token.save(on: req)
     }
+    
+    func upgradeHandler(_ req: Request) throws -> Future<HTTPStatus> {
+        let user = try req.requireAuthenticated(User.self)
+        guard user.role == User.Role.admin.rawValue else {
+            return req.future(.forbidden)
+        }
+        return try req.parameters.next(User.self).flatMap(to: HTTPStatus.self) { needUpgradeUser in
+            guard needUpgradeUser.role != User.Role.admin.rawValue else {
+                return req.future(.ok)
+            }
+            needUpgradeUser.role = User.Role.admin.rawValue
+            return needUpgradeUser.save(on: req).transform(to: .ok)
+        }
+    }    
+}
+
+struct UserCreateData: Content {
+    let username: String
+    let name: String
+    let password: String
+    let email: String
 }

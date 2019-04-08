@@ -30,7 +30,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     middlewares.use(SessionsMiddleware.self)
     services.register(middlewares)
     
-    let hostname = Environment.get("DATABASE_HOSTNAME") ?? "db-dev.josephaws.com"
+    let hostname = Environment.get("DATABASE_HOSTNAME") ?? "localhost"
     let username = Environment.get("DATABASE_USER") ?? "derekcoder"
     let password = Environment.get("DATABASE_PASSWORD") ?? "password"
     let databaseName: String
@@ -53,7 +53,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
                                              database: databaseName)
 
     // Configure a MySQL database
-//    let databaseConfig = MySQLDatabaseConfig(hostname: "35.238.101.198", username: "derekcoder", password: "password", database: "acronym")
+//    let databaseConfig = MySQLDatabaseConfig(hostname: "localhost", username: "derekcoder", password: "password", database: "acronym")
     let database = MySQLDatabase(config: databaseConfig)
 
     // Register the configured SQLite database to the database config.

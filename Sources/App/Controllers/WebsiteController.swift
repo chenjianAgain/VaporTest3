@@ -37,20 +37,31 @@ struct WebsiteController: RouteCollection {
     func acronymHandler(_ req: Request) throws -> Future<View> {
         return try req.parameters.next(Acronym.self).flatMap(to: View.self) { acronym in
             return acronym.language.get(on: req).flatMap(to: View.self) { language in
-                let context = AcronymContext(title: acronym.name, acronym: acronym, language: language)
+                let userLoggedIn = try req.isAuthenticated(User.self)
+                let context = AcronymContext(title: acronym.name,
+                                             acronym: acronym,
+                                             language: language,
+                                             userLoggedIn: userLoggedIn)
                 return try req.view().render("acronym", context)
             }
         }
     }
     
     func createAcronymHandler(_ req: Request) throws -> Future<View> {
-        let context = CreateAcronymContext(languages: Language.query(on: req).all())
+        let userLoggedIn = try req.isAuthenticated(User.self)
+        let languages = Language.query(on: req).all()
+        let context = CreateAcronymContext(languages: languages, userLoggedIn: userLoggedIn)
         return try req.view().render("createAcronym", context)
     }
     
     func createAcronymPostHandler(_ req: Request, acronymData: AcronymCreateData) throws -> Future<Response> {
         let user = try req.requireAuthenticated(User.self)
-        let acronym = try Acronym(name: acronymData.name, meaning: acronymData.meaning, languageID: acronymData.languageID, userID: user.requireID())
+        let state = user.isAdmin ? Acronym.State.approved.rawValue : Acronym.State.pending.rawValue
+        let acronym = try Acronym(name: acronymData.name,
+                                  meaning: acronymData.meaning,
+                                  state: state,
+                                  languageID: acronymData.languageID,
+                                  userID: user.requireID())
         return acronym.save(on: req).map(to: Response.self) { acronym in
             guard let id = acronym.id else {
                 return req.redirect(to: "/")
@@ -125,11 +136,13 @@ struct AcronymContext: Encodable {
     let title: String
     let acronym: Acronym
     let language: Language
+    let userLoggedIn: Bool
 }
 
 struct CreateAcronymContext: Encodable {
     let title = "Create An Acronym"
     let languages: Future<[Language]>
+    let userLoggedIn: Bool
 }
 
 struct EditAcronymContext: Encodable {

@@ -13,12 +13,20 @@ final class Acronym: Codable {
     var id: Int?
     var name: String
     var meaning: String
+    var state: String
     var languageID: Language.ID
     var userID: User.ID
     
-    init(name: String, meaning: String, languageID: Language.ID, userID: User.ID) {
+    enum State: String {
+        case rejected
+        case pending
+        case approved
+    }
+    
+    init(name: String, meaning: String, state: String, languageID: Language.ID, userID: User.ID) {
         self.name = name
         self.meaning = meaning
+        self.state = state
         self.languageID = languageID
         self.userID = userID
     }

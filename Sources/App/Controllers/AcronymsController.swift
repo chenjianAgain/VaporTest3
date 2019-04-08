@@ -23,15 +23,32 @@ struct AcronymsController: RouteCollection {
         tokenAuthGroup.post(AcronymCreateData.self, use: createHandler)
         tokenAuthGroup.delete(Acronym.parameter, use: deleteHandler)
         tokenAuthGroup.put(Acronym.parameter, use: updateHandler)
+        tokenAuthGroup.post(Acronym.parameter, "approve", use: approveHandler)
+        tokenAuthGroup.post(Acronym.parameter, "reject", use: rejectHandler)
+        tokenAuthGroup.get("current", use: getCurrentUserAcronyms)
     }
     
     func getAllHandler(_ req: Request) throws -> Future<[Acronym]> {
-        return Acronym.query(on: req).all()
+        if let state = req.query[String.self, at: "state"] {
+            return Acronym.query(on: req).filter(\.state == state).all()
+        } else {
+            return Acronym.query(on: req).all()
+        }
+    }
+    
+    func getCurrentUserAcronyms(_ req: Request) throws -> Future<[Acronym]> {
+        let user = try req.requireAuthenticated(User.self)
+        return try user.acronyms.query(on: req).all()
     }
     
     func createHandler(_ req: Request, acronymData: AcronymCreateData) throws -> Future<Acronym> {
         let user = try req.requireAuthenticated(User.self)
-        let acronym = try Acronym(name: acronymData.name, meaning: acronymData.meaning, languageID: acronymData.languageID, userID: user.requireID())
+        let state = user.isAdmin ? Acronym.State.approved.rawValue : Acronym.State.pending.rawValue
+        let acronym = try Acronym(name: acronymData.name,
+                                  meaning: acronymData.meaning,
+                                  state: state,
+                                  languageID: acronymData.languageID,
+                                  userID: user.requireID())
         return acronym.save(on: req)
     }
     
@@ -69,6 +86,36 @@ struct AcronymsController: RouteCollection {
             or.filter(\.name == searchQuery)
             or.filter(\.meaning == searchQuery)
         }.all()
+    }
+    
+    func approveHandler(_ req: Request) throws -> Future<HTTPStatus> {
+        let user = try req.requireAuthenticated(User.self)
+        guard user.role == User.Role.admin.rawValue else {
+            return req.future(HTTPStatus.forbidden)
+        }
+        
+        return try req.parameters.next(Acronym.self).flatMap(to: HTTPStatus.self) { acronym in
+            guard acronym.state != Acronym.State.approved.rawValue else {
+                return req.future(.ok)
+            }
+            acronym.state = Acronym.State.approved.rawValue
+            return acronym.save(on: req).transform(to: .ok)
+        }
+    }
+    
+    func rejectHandler(_ req: Request) throws -> Future<HTTPStatus> {
+        let user = try req.requireAuthenticated(User.self)
+        guard user.role == User.Role.admin.rawValue else {
+            return req.future(HTTPStatus.forbidden)
+        }
+
+        return try req.parameters.next(Acronym.self).flatMap(to: HTTPStatus.self) { acronym in
+            guard acronym.state != Acronym.State.rejected.rawValue else {
+                return req.future(.ok)
+            }
+            acronym.state = Acronym.State.rejected.rawValue
+            return acronym.save(on: req).transform(to: .ok)
+        }
     }
 }
 

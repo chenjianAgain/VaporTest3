@@ -3,15 +3,24 @@
   <ul>
     <li>Meaning: #(acronym.meaning)</li>
     <li>Language: #(language.name)</li>
+      #if(acronym.state == 0) {
+        <li>State: Pending</li>
+      } else if(acronym.state == 1) {
+        <li>State: Approved</li>
+      } else if(acronym.state == -1) {
+        <li>State: Rejected</li>
+      }
   </ul>
 
   <br>
   <br>
 
-  <form method="post" action="/acronyms/#(acronym.id)/delete">
-    <a class="btn btn-primary" href="/acronyms/#(acronym.id)/edit" role="button">Edit</a>
-    <input class="btn btn-danger" type="submit" value="Delete">
-  </form>
+  #if(userLoggedIn) {
+    <form method="post" action="/acronyms/#(acronym.id)/delete">
+      <a class="btn btn-primary" href="/acronyms/#(acronym.id)/edit" role="button">Edit</a>
+      <input class="btn btn-danger" type="submit" value="Delete">
+    </form>
+  }
 
 }
 #embed("base")
