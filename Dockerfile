@@ -17,4 +17,4 @@ COPY . /vapor
 
 RUN ["vapor", "--help"];
 RUN vapor build;
-RUN vapor run --hostname=0.0.0.0 --port=80;
+# RUN vapor run --hostname=0.0.0.0 --port=80;
