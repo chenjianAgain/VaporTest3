@@ -18,3 +18,7 @@ COPY . /vapor
 RUN ["vapor", "--help"];
 RUN vapor build;
 # RUN vapor run --hostname=0.0.0.0 --port=80;
+
+EXPOSE 80
+ENTRYPOINT ["vapor"]
+CMD ["run", "--hostname=0.0.0.0", "--port=80"]
